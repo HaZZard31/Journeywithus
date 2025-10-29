@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Our Private Memory Scrapbook</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Phosphor Icons for a clean look -->
+    <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/css/icons.css">
+    <style>
+        /* Custom styles for a scrapbook/journal feel */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7f3e8; /* Warm off-white, like aged paper */
+        }
+        .journal-card {
+            background-color: #ffffff;
+            /* Soft shadow for depth */
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+            transition: transform 0.2s;
+            cursor: pointer;
+            border-left: 5px solid #E91E63; /* Pink border like a ribbon */
+            border-radius: 8px;
+        }
+        .journal-card:hover {
+            transform: translateY(-3px) rotate(0.5deg); /* Subtle lift and tilt */
+        }
+        .btn-primary {
+            background-color: #E91E63; /* Vibrant Pink */
+            color: white;
+            padding: 0.75rem 1.5rem;
+            border-radius: 0.5rem;
+            transition: background-color 0.2s;
+        }
+        .btn-primary:hover {
+            background-color: #C2185B;
+        }
+        .date-input {
+            appearance: none;
+        }
+        /* Style for the delete button */
+        .delete-btn:hover {
+            color: #E91E63;
+        }
+        /* Emoji Palette styles */
+        .emoji-char {
+            cursor: pointer;
+            transition: transform 0.15s;
+        }
+        .emoji-char:hover {
+            transform: scale(1.3);
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app" class="min-h-screen p-4 sm:p-8">
+        <!-- Header -->
+        <header class="text-center mb-10">
+            <h1 class="text-4xl sm:text-5xl font-extrabold text-gray-800">
+                Our Shared Moments
+            </h1>
+            <p class="text-lg text-gray-600 mt-2">
+                A private place for our dearest memories and milestones.
+            </p>
+            
+            <!-- NEW NAVIGATION LINK -->
+            <div class="mt-4">
+                <a href="index.html" class="inline-flex items-center text-sm font-medium text-pink-600 hover:text-pink-800 transition duration-150 border-b border-pink-600 hover:border-pink-800">
+                    <i class="ph-house-fill text-xl mr-1"></i> Go back to the Main Website
+                </a>
+            </div>
+            
+            <p id="user-info" class="text-xs text-gray-400 mt-1">
+                User ID: Loading...
+            </p>
+        </header>
+
+        <!-- Input Section -->
+        <div class="max-w-4xl mx-auto bg-white p-6 sm:p-8 rounded-xl shadow-lg border border-gray-100">
+            <h2 class="text-2xl font-semibold text-gray-700 mb-4 flex items-center">
+                <i class="ph-sparkle-fill mr-2 text-pink-500"></i> Record a Memory
+            </h2>
+            
+            <div class="mb-4">
+                <label for="moment-date" class="block text-sm font-medium text-gray-700 mb-1">Date of Memory</label>
+                <input type="date" id="moment-date" class="date-input w-full sm:w-1/2 p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-300 focus:border-pink-300 transition duration-150">
+            </div>
+
+            <!-- START: Unicode/Emoji Palette -->
+            <div class="mb-3 p-3 bg-pink-50 rounded-lg border border-pink-100">
+                <label class="block text-xs font-semibold text-pink-700 mb-2">Insert an Emoji (Unicode)</label>
+                <div id="emoji-palette" class="flex flex-wrap gap-3 text-2xl">
+                    <span class="emoji-char" title="Heart">❤️</span>
+                    <span class="emoji-char" title="Tears of Joy">😂</span>
+                    <span class="emoji-char" title="Star">⭐</span>
+                    <span class="emoji-char" title="Sun">☀️</span>
+                    <span class="emoji-char" title="Pizza">🍕</span>
+                    <span class="emoji-char" title="Kiss">😘</span>
+                    <span class="emoji-char" title="Couple">💑</span>
+                    <span class="emoji-char" title="Music">🎶</span>
+                    <span class="emoji-char" title="Trophy">🏆</span>
+                    <span class="emoji-char" title="Flower">🌸</span>
+                </div>
+            </div>
+            <!-- END: Unicode/Emoji Palette -->
+
+            <textarea id="moment-input" rows="4" class="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-pink-300 focus:border-pink-300 transition duration-150" placeholder="Describe the beautiful moment, the conversation, or the special feeling in any language..."></textarea>
+            
+            <div class="mt-4 flex justify-end">
+                <button id="save-moment-btn" class="btn-primary transition flex items-center justify-center">
+                    <i class="ph-heart-fill text-xl mr-2"></i> Save Memory
+                </button>
+            </div>
+        </div>
+
+        <!-- Moments Display Area -->
+        <div class="max-w-4xl mx-auto mt-12">
+            <h2 class="text-3xl font-bold text-gray-800 mb-6 flex items-center justify-center">
+                <i class="ph-scroll-fill mr-3"></i> Our Journal
+            </h2>
+            <div id="moments-grid" class="grid grid-cols-1 gap-6">
+                <!-- Moments will be inserted here -->
+                <p id="empty-state" class="col-span-full text-center text-gray-500 italic hidden">Start adding your beautiful memories above!</p>
+            </div>
+        </div>
+
+        <!-- Message Box Modal (for errors/info) -->
+        <div id="message-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+            <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+                <h3 id="message-title" class="text-xl font-bold mb-3 text-red-500">Error</h3>
+                <p id="message-content" class="text-gray-700 mb-4"></p>
+                <button onclick="document.getElementById('message-modal').classList.add('hidden')" class="w-full py-2 btn-primary">
+                    Close
+                </button>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Firebase Imports -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, addDoc, onSnapshot, collection, serverTimestamp, setLogLevel, query, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        // Global Firebase Variables (Mandatory usage)
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const initialAuthToken = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+        
+        let db;
+        let auth;
+        let userId = null;
+        let isAuthReady = false;
+
+        // --- Utility Functions ---
+
+        /** Shows a custom message box instead of alert() */
+        function showMessageBox(title, content, isError = true) {
+            const modal = document.getElementById('message-modal');
+            
+            document.getElementById('message-title').textContent = title;
+            document.getElementById('message-content').textContent = content;
+            document.getElementById('message-title').className = `text-xl font-bold mb-3 ${isError ? 'text-red-500' : 'text-green-500'}`;
+            modal.querySelector('button').textContent = "Close"; // Ensure button text is English
+            modal.classList.remove('hidden');
+        }
+
+        /** Inserts text into a textarea at the current cursor position */
+        function insertAtCursor(input, textToInsert) {
+            const start = input.selectionStart;
+            const end = input.selectionEnd;
+
+            // Insert the text (Supports all Unicode, including Sinhala)
+            input.value = input.value.substring(0, start) + textToInsert + input.value.substring(end);
+
+            // Move the cursor right after the inserted text
+            input.selectionStart = input.selectionEnd = start + textToInsert.length;
+            
+            // Re-focus the input field
+            input.focus();
+        }
+
+        // --- Firebase Initialization and Auth ---
+
+        async function initFirebase() {
+            try {
+                // Initialize Firebase
+                const app = initializeApp(firebaseConfig);
+                db = getFirestore(app);
+                auth = getAuth(app);
+                setLogLevel('Debug'); // Enable logging
+
+                // Sign in using custom token or anonymously
+                await new Promise(resolve => {
+                    onAuthStateChanged(auth, async (user) => {
+                        if (user) {
+                            userId = user.uid;
+                        } else if (initialAuthToken) {
+                            // Use custom token if available (standard Canvas environment)
+                            await signInWithCustomToken(auth, initialAuthToken);
+                            userId = auth.currentUser.uid;
+                        } else {
+                            // Fallback to anonymous sign-in
+                            await signInAnonymously(auth);
+                            userId = auth.currentUser.uid;
+                        }
+                        
+                        isAuthReady = true;
+                        document.getElementById('user-info').textContent = `User ID: ${userId}`;
+                        resolve();
+                        loadMoments();
+                    });
+                });
+
+            } catch (error) {
+                console.error("Error initializing Firebase:", error);
+                showMessageBox("Setup Error", "Failed to initialize Firebase. Check console for details.", true);
+            }
+        }
+
+        // --- Firestore Data Operations ---
+
+        function getCollectionRef() {
+            if (!db || !userId) {
+                console.error("Firestore not initialized or user not authenticated.");
+                return null;
+            }
+            // Private data storage path: /artifacts/{appId}/users/{userId}/moments
+            return collection(db, 'artifacts', appId, 'users', userId, 'moments');
+        }
+
+        /** Renders a single moment card */
+        function renderMoment(moment) {
+            const grid = document.getElementById('moments-grid');
+            
+            // Format the memory date
+            const memoryDateString = moment.memoryDate 
+                ? new Date(moment.memoryDate + 'T00:00:00').toLocaleDateString() 
+                : (moment.timestamp?.toDate ? moment.timestamp.toDate().toLocaleDateString() : 'N/A');
+            
+            // Timestamp of when the entry was recorded
+            const recordedTimeString = moment.timestamp?.toDate 
+                ? moment.timestamp.toDate().toLocaleString() 
+                : 'N/A';
+
+            // IMPORTANT: The 'moment.text' field contains the actual content, which can be Sinhala Unicode.
+            // By simply inserting it into the HTML, it will render correctly.
+            const content = `
+                <div class="journal-card p-6 transition duration-300">
+                    <div class="flex items-start justify-between mb-3">
+                        <div>
+                            <p class="text-sm font-semibold text-gray-500 uppercase tracking-wider mb-1">
+                                <i class="ph-calendar-blank-fill mr-1"></i> Date of Moment:
+                            </p>
+                            <h3 class="text-xl font-extrabold text-pink-600">${memoryDateString}</h3>
+                        </div>
+                        <button data-id="${moment.id}" class="delete-btn text-gray-400 hover:text-red-500 transition p-1">
+                            <i class="ph-trash text-2xl"></i>
+                        </button>
+                    </div>
+                    
+                    <p class="text-gray-800 text-base italic leading-relaxed border-t pt-3 border-gray-100">
+                        ${moment.text}
+                    </p>
+                    
+                    <p class="text-xs text-gray-400 mt-3 text-right">
+                        Recorded: ${recordedTimeString}
+                    </p>
+                </div>
+            `;
+
+            const momentEl = document.createElement('div');
+            momentEl.className = 'moment-item';
+            momentEl.innerHTML = content;
+            grid.prepend(momentEl); // Prepend so new items are at the top
+        }
+
+        /** Clears and re-renders all moments from the snapshot */
+        function loadMoments() {
+            if (!isAuthReady || !db) return;
+
+            const momentsRef = getCollectionRef();
+            if (!momentsRef) return;
+
+            // Using onSnapshot to listen for real-time updates
+            const q = query(momentsRef);
+
+            onSnapshot(q, (snapshot) => {
+                const momentsGrid = document.getElementById('moments-grid');
+                momentsGrid.innerHTML = ''; // Clear existing content
+                
+                const moments = [];
+                snapshot.forEach(doc => {
+                    moments.push({ id: doc.id, ...doc.data() });
+                });
+
+                // Sort the moments by timestamp in descending order (newest first)
+                moments.sort((a, b) => (b.timestamp?.seconds || 0) - (a.timestamp?.seconds || 0));
+
+                if (moments.length === 0) {
+                    document.getElementById('empty-state').classList.remove('hidden');
+                } else {
+                    document.getElementById('empty-state').classList.add('hidden');
+                    moments.forEach(renderMoment);
+                }
+                
+                // Re-attach delete listeners
+                document.querySelectorAll('.delete-btn').forEach(button => {
+                    button.onclick = (e) => {
+                        e.stopPropagation();
+                        deleteMoment(e.currentTarget.dataset.id);
+                    };
+                });
+            }, (error) => {
+                console.error("Error fetching moments:", error);
+                showMessageBox("Data Error", "Could not load memories. Please check your connection.", true);
+            });
+        }
+
+
+        /** Saves a text entry to Firestore */
+        async function saveMomentEntry() {
+            const inputEl = document.getElementById('moment-input');
+            const dateEl = document.getElementById('moment-date');
+            
+            const text = inputEl.value.trim();
+            const memoryDate = dateEl.value; // Date in YYYY-MM-DD format
+
+            if (!text || !memoryDate) {
+                showMessageBox("Input Required", "Please describe the moment AND select the date before saving.", false);
+                return;
+            }
+
+            const momentsRef = getCollectionRef();
+            if (!momentsRef) return;
+
+            try {
+                await addDoc(momentsRef, {
+                    // This 'text' field can hold any valid Unicode, including Sinhala characters
+                    text: text, 
+                    memoryDate: memoryDate,
+                    timestamp: serverTimestamp() // Time of recording
+                });
+                inputEl.value = ''; // Clear input on success
+                dateEl.value = ''; // Clear date
+                showMessageBox("Success!", "Memory saved securely!", false);
+            } catch (error) {
+                console.error("Error saving moment entry:", error);
+                showMessageBox("Save Error", "Could not save the moment. Please try again.", true);
+            }
+        }
+
+        /** Deletes a moment from Firestore */
+        async function deleteMoment(id) {
+            const momentsRef = getCollectionRef();
+            if (!momentsRef) return;
+
+            const docRef = doc(momentsRef, id);
+            try {
+                await deleteDoc(docRef);
+                // onSnapshot will handle the UI update automatically
+            } catch (error) {
+                console.error("Error deleting moment:", error);
+                showMessageBox("Delete Error", "Could not delete the moment.", true);
+            }
+        }
+
+        // --- Event Listeners and Startup ---
+
+        window.onload = function() {
+            // Set today's date as default for convenience
+            document.getElementById('moment-date').valueAsDate = new Date();
+            
+            initFirebase();
+            document.getElementById('save-moment-btn').addEventListener('click', saveMomentEntry);
+
+            // Initialize Emoji Palette functionality
+            const momentInput = document.getElementById('moment-input');
+            document.querySelectorAll('.emoji-char').forEach(emojiSpan => {
+                emojiSpan.addEventListener('click', () => {
+                    const emoji = emojiSpan.textContent;
+                    insertAtCursor(momentInput, emoji);
+                });
+            });
+        };
+
+    </script>
+</body>
+</html>
