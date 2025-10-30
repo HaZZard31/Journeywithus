@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="si">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>මාව මතක් වෙනකොට</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Load Phosphor Icons -->
+    <link rel="stylesheet" href="https://unpkg.com/@phosphor-icons/web@2.1.1/src/css/icons.css">
+    <style>
+        /* Custom styles for a comforting feel */
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f7e8ec; /* Soft blush pink background */
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+        }
+        .container-card {
+            background-color: #ffffff;
+            box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.05);
+            border: 1px solid #f9d8e7;
+            max-width: 500px;
+            width: 95%;
+        }
+        .btn-love {
+            background-color: #E91E63; /* Vibrant Pink */
+            color: white;
+            padding: 1rem 2.5rem;
+            border-radius: 9999px; /* Pill shape */
+            transition: all 0.2s ease-in-out;
+            font-size: 1.125rem;
+            font-weight: bold;
+            box-shadow: 0 4px #C2185B; /* Shadow for a lifted effect */
+            transform: translateY(0);
+        }
+        .btn-love:hover {
+            background-color: #C2185B;
+            box-shadow: 0 2px #A1154C;
+            transform: translateY(2px);
+        }
+        .btn-love:active {
+            transform: translateY(4px);
+            box-shadow: none;
+        }
+        .message-box {
+            min-height: 100px;
+            border-left: 5px solid #E91E63;
+            background-color: #fff0f5; /* Lightest pink for the message */
+            transition: opacity 0.5s;
+        }
+        .loading-spinner {
+            border-top-color: #E91E63;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body>
+
+    <div id="app" class="p-4 sm:p-8">
+        <div class="container-card p-6 sm:p-10 rounded-xl text-center">
+            
+            <header class="mb-8">
+                <h1 class="text-3xl sm:text-4xl font-extrabold text-gray-800 mb-2">
+                    මාව මතක් වෙනකොට ක්ලික් කරන්න
+                </h1>
+                <p class="text-md text-gray-500">
+                    ක්ෂණික මතක් කිරීමක් සඳහා.
+                </p>
+            </header>
+
+            <!-- Main Button -->
+            <button id="uplift-button" class="btn-love flex items-center justify-center mx-auto mb-8 w-full max-w-xs">
+                <i class="ph-heart-fill text-2xl mr-2"></i> මතක් කරන්න
+            </button>
+
+            <!-- Message Display Area -->
+            <div id="message-container" class="message-box p-4 rounded-lg text-gray-700 text-lg italic shadow-inner hidden">
+                <p id="message-content" class="text-center">
+                    ආදරණීය පණිවිඩයක් ලබා ගැනීමට ඉහත බොත්තම ඔබන්න.
+                </p>
+                <div id="loading-indicator" class="hidden flex justify-center items-center h-full min-h-[50px]">
+                    <div class="loading-spinner w-8 h-8 border-4 border-dashed rounded-full"></div>
+                </div>
+            </div>
+
+            <!-- Link back to Main Website -->
+            <div class="mt-6 text-sm">
+                <a href="main_website.html" class="text-gray-500 hover:text-pink-600 transition duration-300 ease-in-out font-medium underline">
+                    ප්‍රධාන වෙබ් අඩවිය වෙත ආපසු යන්න
+                </a>
+            </div>
+
+            <!-- Error/Info Message Box (Reused utility) -->
+            <div id="message-modal" class="hidden fixed inset-0 bg-gray-900 bg-opacity-50 flex items-center justify-center z-50">
+                <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
+                    <h3 id="message-title" class="text-xl font-bold mb-3 text-red-500">දෝෂය</h3>
+                    <p id="message-content-modal" class="text-gray-700 mb-4"></p>
+                    <button onclick="document.getElementById('message-modal').classList.add('hidden')" class="w-full py-2 btn-love">
+                        වසා දමන්න
+                    </button>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        const API_KEY = ""; // Placeholder for Canvas API Key
+        const API_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-2.5-flash-preview-09-2025:generateContent?key=" + API_KEY;
+
+        const button = document.getElementById('uplift-button');
+        const messageContainer = document.getElementById('message-container');
+        const messageDisplay = document.getElementById('message-content');
+        const loadingIndicator = document.getElementById('loading-indicator');
+
+        /** Shows a custom message box instead of alert() */
+        function showMessageBox(title, content, isError = true) {
+            const modal = document.getElementById('message-modal');
+            const titleEl = modal.querySelector('#message-title');
+            const contentEl = modal.querySelector('#message-content-modal');
+            
+            // Check if elements are null before using classList or textContent
+            if (!modal || !titleEl || !contentEl) {
+                console.error("Modal elements not found, cannot display message box.");
+                return;
+            }
+
+            titleEl.textContent = title;
+            contentEl.textContent = content;
+            // Update modal title text for Sinhala messages
+            if (isError) {
+                titleEl.textContent = "දෝෂය";
+            } else {
+                titleEl.textContent = "තොරතුරු";
+            }
+
+            titleEl.className = `text-xl font-bold mb-3 ${isError ? 'text-red-500' : 'text-green-500'}`;
+            modal.querySelector('button').textContent = "වසා දමන්න"; // Ensure close button is Sinhala
+            modal.classList.remove('hidden');
+        }
+
+        /** Handles exponential backoff for API retries */
+        async function fetchWithRetry(payload, maxRetries = 5) {
+            for (let attempt = 0; attempt < maxRetries; attempt++) {
+                try {
+                    const response = await fetch(API_URL, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+
+                    if (response.status === 429 && attempt < maxRetries - 1) {
+                        // Rate limit error, wait and retry
+                        const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+                        await new Promise(resolve => setTimeout(resolve, delay));
+                        continue; 
+                    }
+                    
+                    if (!response.ok) {
+                        throw new Error(`HTTP error! Status: ${response.status}`);
+                    }
+
+                    return response.json();
+
+                } catch (error) {
+                    console.error(`Attempt ${attempt + 1} failed:`, error);
+                    if (attempt === maxRetries - 1) throw error; 
+                    
+                    const delay = Math.pow(2, attempt) * 1000 + Math.random() * 1000;
+                    await new Promise(resolve => setTimeout(resolve, delay));
+                }
+            }
+        }
+
+        /** Generates a loving message using the Gemini API */
+        async function generateUpliftMessage() {
+            messageDisplay.textContent = "";
+            messageContainer.classList.remove('hidden');
+            loadingIndicator.classList.remove('hidden');
+            button.disabled = true;
+            
+            // Update button text to Sinhala
+            button.innerHTML = '<i class="ph-spinner-gap-fill text-2xl mr-2 loading-spinner"></i> සකසමින් පවතී...';
+
+            // --- SINHALA PROMPTS WITH LOCAL CONTEXT ---
+            const systemPrompt = "You are a deeply loving, supportive, and comforting partner. Your primary goal is to generate short, sweet, and unique messages (2-3 sentences max) to instantly cheer up the user when they are feeling missed or down. **The message MUST be in Sinhala.** Incorporate supportive language using relatable modern Sri Lankan internet trends or simple viral/popular quotes for an extra personalized touch. Use warm, gentle language.";
+            
+            const userQuery = "Generate one unique, uplifting, and comforting message in Sinhala. Ensure it sounds personal and genuine, like a note you'd leave on a mirror, and includes a light Sri Lankan internet/viral reference for familiarity.";
+            // --- END PROMPTS ---
+
+            const payload = {
+                contents: [{ parts: [{ text: userQuery }] }],
+                systemInstruction: { parts: [{ text: systemPrompt }] },
+                config: {
+                    temperature: 0.9, // Higher temperature for more creative, unique messages
+                }
+            };
+
+            try {
+                const result = await fetchWithRetry(payload);
+                
+                const text = result?.candidates?.[0]?.content?.parts?.[0]?.text;
+
+                if (text) {
+                    messageDisplay.innerHTML = text;
+                } else {
+                    showMessageBox("පණිවිඩය ජනනය කිරීම අසාර්ථක විය", "මට මේ වෙලාවේ පණිවිඩයක් ජනනය කරන්න බැරි වුණා. කරුණාකර නැවත උත්සාහ කරන්න.", true);
+                    messageDisplay.textContent = "ආදරණීය පණිවිඩයක් ලබා ගැනීමට ඉහත බොත්තම ඔබන්න.";
+                }
+
+            } catch (error) {
+                console.error("Gemini API Error:", error);
+                showMessageBox("සම්බන්ධතා දෝෂය", `පණිවිඩ ජනකය වෙත ළඟා වීමට නොහැකි විය. ඔබගේ ජාල සම්බන්ධතාවය පරීක්ෂා කරන්න. විස්තර: ${error.message}`, true);
+                messageDisplay.textContent = "ආදරණීය පණිවිඩයක් ලබා ගැනීමට ඉහත බොත්තම ඔබන්න.";
+
+            } finally {
+                loadingIndicator.classList.add('hidden');
+                button.disabled = false;
+                // Revert button text to Sinhala
+                button.innerHTML = '<i class="ph-heart-fill text-2xl mr-2"></i> මතක් කරන්න';
+            }
+        }
+
+        // --- Event Listener ---
+        window.onload = function() {
+            button.addEventListener('click', generateUpliftMessage);
+            messageDisplay.textContent = "ආදරණීය පණිවිඩයක් ලබා ගැනීමට ඉහත බොත්තම ඔබන්න.";
+        };
+    </script>
+</body>
+</html>
