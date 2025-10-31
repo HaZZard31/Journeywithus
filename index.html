@@ -87,7 +87,7 @@
             100% { transform: scale(1); }
         }
 
-        /* --- KISS EMOJI ANIMATION STYLES (Slow) --- */
+        /* --- KISS EMOJI ANIMATION STYLING (Slow) --- */
         .kiss-emoji {
             position: absolute;
             font-size: 2.5rem; 
@@ -210,7 +210,7 @@
                 <div class="absolute -left-3 top-0 h-6 w-6 bg-rose-gold rounded-full shadow-md flex items-center justify-center text-white"><i class="fas fa-kiss text-xs"></i></div>
                 <p class="text-sm text-gray-500">ඔක්තෝම්බර් 25, 2025</p>
                 <h3 class="text-xl font-bold text-gray-800">ඔබට දුන් පළමු හාදුව</h3>
-                <p class="text-sm text-gray-600">අආදරයේ අරුත පෙන්වා දුන් ඒ සොඳුරු මොහොත.</p>
+                <p class="text-sm text-gray-600">ආදරයේ අරුත පෙන්වා දුන් ඒ සොඳුරු මොහොත.</p>
             </div>
             <!-- Add more milestones here if needed for extra length --></div>
     </section>
@@ -371,67 +371,23 @@
         // ****** ඔබට දී ඇති යතුර දැන් ඇතුල් කර ඇත: AIzaSyB11_E1o3BNKiZou1bKF-UvebCHNrgJbS0
         const API_KEY = "AIzaSyB11_E1o3BNKiZou1bKF-UvebCHNrgJbS0"; 
         const TEXT_MODEL = "gemini-2.5-flash-preview-09-2025";
-        const TTS_MODEL = "gemini-2.5-flash-preview-tts";
+        // const TTS_MODEL = "gemini-2.5-flash-preview-tts"; // --- REMOVED ---
+
+        // --- NEW: Audio Playlist Configuration ---
+        // --- Configuration: REPLACE THESE URLs with your actual audio file paths/URLs ---
+        const VOICE_PLAYLIST = [
+            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-1.mp3", // Placeholder Voice 1
+            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-2.mp3", // Placeholder Voice 2
+            "https://www.soundhelix.com/examples/mp3/SoundHelix-Song-3.mp3"  // Placeholder Voice 3
+            // You can add more of "her voice" files here, e.g., "voice4.mp3"
+        ];
+        let currentVoiceIndex = 0; // Tracks which voice to play next
+        let currentAudio = null;   // Manages the currently playing audio
 
         // --- Utility Functions for TTS (PCM to WAV conversion) ---
+        // --- base64ToArrayBuffer REMOVED ---
+        // --- pcmToWav REMOVED ---
 
-        // Converts a base64 string to an ArrayBuffer
-        function base64ToArrayBuffer(base64) {
-            const binaryString = atob(base64);
-            const len = binaryString.length;
-            const bytes = new Uint8Array(len);
-            for (let i = 0; i < len; i++) {
-                bytes[i] = binaryString.charCodeAt(i);
-            }
-            return bytes.buffer;
-        }
-
-        // Converts signed 16-bit PCM audio data to a standard WAV Blob
-        function pcmToWav(pcm16, sampleRate) {
-            const numChannels = 1;
-            const bytesPerSample = 2; // 16-bit PCM
-            const blockAlign = numChannels * bytesPerSample;
-            const byteRate = sampleRate * blockAlign;
-            const dataSize = pcm16.length * bytesPerSample;
-            const buffer = new ArrayBuffer(44 + dataSize);
-            const view = new DataView(buffer);
-            
-            // Helper function to write a string to the DataView
-            function writeString(view, offset, string) {
-                for (let i = 0; i < string.length; i++) {
-                    view.setUint8(offset + i, string.charCodeAt(i));
-                }
-            }
-
-            /* RIFF header */
-            writeString(view, 0, 'RIFF'); // ChunkID
-            view.setUint32(4, 36 + dataSize, true); // ChunkSize
-            writeString(view, 8, 'WAVE'); // Format
-
-            /* FMT sub-chunk */
-            writeString(view, 12, 'fmt '); // Subchunk1ID
-            view.setUint32(16, 16, true); // Subchunk1Size (16 for PCM)
-            view.setUint16(20, 1, true); // AudioFormat (1 for PCM)
-            view.setUint16(22, numChannels, true); // NumChannels
-            view.setUint32(24, sampleRate, true); // SampleRate
-            view.setUint32(28, byteRate, true); // ByteRate
-            view.setUint16(32, blockAlign, true); // BlockAlign
-            view.setUint16(34, 16, true); // BitsPerSample (16-bit)
-
-            /* DATA sub-chunk */
-            writeString(view, 36, 'data'); // Subchunk2ID
-            view.setUint32(40, dataSize, true); // Subchunk2Size
-
-            // Write PCM data
-            let offset = 44;
-            for (let i = 0; i < pcm16.length; i++) {
-                view.setInt16(offset, pcm16[i], true); // Signed 16-bit little-endian
-                offset += 2;
-            }
-
-            return new Blob([view], { type: 'audio/wav' });
-        }
-        
         // --- Exponential Backoff Fetcher (UPDATED FOR 'unregistered networks' error) ---
         async function fetchWithRetry(url, options, retries = 3) {
             for (let i = 0; i < retries; i++) {
@@ -447,7 +403,7 @@
                             errorMessage.includes('API Key') || 
                             errorMessage.includes('unregistered networks')
                         )) {
-                             // Log retries internally, but use exponential delay
+                            // Log retries internally, but use exponential delay
                             const delay = Math.pow(2, i) * 1000 + Math.random() * 1000;
                             await new Promise(resolve => setTimeout(resolve, delay));
                             continue; // Go to next retry attempt
@@ -475,92 +431,90 @@
 
 
         // --- TTS Generation Function (Feature 1) ---
-        async function generateTTS() {
+        // --- generateTTS() function REMOVED ---
+
+        // --- NEW: Playlist Player Function (Replaces generateTTS) ---
+        function togglePlayNextVoice() {
             const ttsButton = document.getElementById('tts-button');
             const ttsStatus = document.getElementById('tts-status');
-            const mainMessageElement = document.getElementById('main-message-text');
+            const buttonIcon = ttsButton.querySelector('i');
 
-            if (!mainMessageElement) {
-                ttsStatus.textContent = 'දෝෂය: ප්‍රධාන පණිවිඩය සොයාගත නොහැක.';
-                return;
-            }
-            
-            const userPrompt = mainMessageElement.textContent.trim();
-            if (!userPrompt) {
-                ttsStatus.textContent = 'දෝෂය: කතා කිරීමට පෙළක් නොමැත.';
-                return;
-            }
-            
-            if (API_KEY === "") {
-                ttsStatus.textContent = 'සම්බන්ධතා දෝෂයක්: API යතුර හිස්ය. කරුණාකර යතුර ඇතුළු කරන්න.';
-                return;
-            }
-
-            // Disable button and show loading
-            ttsButton.disabled = true;
-            const originalText = ttsButton.innerHTML;
-            ttsButton.innerHTML = '<i class="fas fa-spinner fa-spin mr-2"></i> ශබ්දය ජනනය වෙමින් පවතී...'; 
-            ttsStatus.textContent = 'ශබ්ද ගොනුව සූදානම් කරමින්...';
-
-            try {
-                const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/${TTS_MODEL}:generateContent?key=${API_KEY}`;
+            // Case 1: Audio exists and is currently playing -> Pause it
+            if (currentAudio && !currentAudio.paused && !currentAudio.ended) {
+                currentAudio.pause();
+                // (Event listeners will handle icon and text)
+            } 
+            // Case 2: Audio exists and is paused -> Resume it
+            else if (currentAudio && currentAudio.paused && !currentAudio.ended) {
+                currentAudio.play();
+                // (Event listeners will handle icon and text)
+            } 
+            // Case 3: No audio is loaded, OR the current audio has finished -> Load and play the NEXT voice
+            else {
+                // Get the next voice URL from our playlist
+                const urlToPlay = VOICE_PLAYLIST[currentVoiceIndex];
                 
-                // Using 'Fenrir' (Excitable) voice
-                const payload = {
-                    contents: [{ parts: [{ text: userPrompt }] }],
-                    generationConfig: {
-                        responseModalities: ["AUDIO"],
-                        speechConfig: {
-                            voiceConfig: {
-                                prebuiltVoiceConfig: { voiceName: "Fenrir" }
-                            }
-                        }
-                    },
-                    model: TTS_MODEL
-                };
-
-                const response = await fetchWithRetry(apiUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify(payload)
-                });
-
-                const result = await response.json();
-                const part = result?.candidates?.[0]?.content?.parts?.[0];
-                const audioData = part?.inlineData?.data;
-                const mimeType = part?.inlineData?.mimeType;
-
-                if (audioData && mimeType && mimeType.startsWith("audio/L16")) {
-                    const rateMatch = mimeType.match(/rate=(\d+)/);
-                    const sampleRate = rateMatch ? parseInt(rateMatch[1], 10) : 24000;
-
-                    const pcmData = base64ToArrayBuffer(audioData);
-                    const pcm16 = new Int16Array(pcmData);
-                    const wavBlob = pcmToWav(pcm16, sampleRate);
-                    const audioUrl = URL.createObjectURL(wavBlob);
-                    
-                    const audio = new Audio(audioUrl);
-                    audio.play();
-                    
-                    ttsStatus.textContent = 'ආදරය ඇසෙයි! (Playing)';
-                    audio.onended = () => {
-                        ttsStatus.textContent = 'සවන් දීම අවසන්.';
-                    };
-
-                } else {
-                    console.error("Invalid TTS response structure:", result);
-                    ttsStatus.textContent = 'ශබ්ද ගොනුව ජනනය කිරීමට නොහැකි විය. (Invalid response)';
+                // Create a new audio object
+                try {
+                    currentAudio = new Audio(urlToPlay);
+                } catch (e) {
+                    console.error("Error creating Audio object:", e);
+                    ttsStatus.textContent = `ශබ්ද ගොනුව සෑදීමේ දෝෂයකි. URL පරීක්ෂා කරන්න.`;
+                    return;
                 }
 
-            } catch (error) {
-                console.error("TTS API Error:", error);
-                // Improved user feedback for API failure
-                ttsStatus.textContent = `සම්බන්ධතා දෝෂයක්: ${error.message}. කරුණාකර තත්පර කිහිපයකින් නැවත උත්සාහ කරන්න.`;
-            } finally {
-                ttsButton.disabled = false;
-                ttsButton.innerHTML = originalText;
+                // --- Setup all event listeners for this new audio object ---
+
+                // When it starts playing:
+                currentAudio.onplay = () => {
+                    ttsStatus.textContent = `ආදර හඬ ${currentVoiceIndex + 1} වාදනය වේ...`;
+                    buttonIcon.classList.remove('fa-volume-up');
+                    buttonIcon.classList.add('fa-pause');
+                };
+                
+                // When it's manually paused:
+                currentAudio.onpause = () => {
+                    if (currentAudio.ended) return; // Don't show "paused" if it just finished naturally
+                    ttsStatus.textContent = `හඬ ${currentVoiceIndex + 1} විරාම කරන ලදී`;
+                    buttonIcon.classList.remove('fa-pause');
+                    buttonIcon.classList.add('fa-volume-up');
+                };
+
+                // When it finishes playing:
+                currentAudio.onended = () => {
+                    ttsStatus.textContent = `හඬ ${currentVoiceIndex + 1} අවසන් විය. ඊළඟට ක්ලික් කරන්න.`;
+                    buttonIcon.classList.remove('fa-pause');
+                    buttonIcon.classList.add('fa-volume-up');
+                    // We don't increment the index here, we wait for the next click
+                };
+
+                // If the audio file fails to load:
+                currentAudio.onerror = (e) => {
+                    console.error("Audio Load Error:", e);
+                    ttsStatus.textContent = `ශබ්ද ගොනුව ${currentVoiceIndex + 1} පැටවීමේ දෝෂයකි.`;
+                    buttonIcon.classList.remove('fa-pause');
+                    buttonIcon.classList.add('fa-volume-up');
+                    currentAudio = null; // Reset
+                };
+
+                // --- End of event listeners ---
+
+                // Start playing the new audio
+                currentAudio.play().catch(error => {
+                    // Handle potential play errors (e.g., autoplay restrictions)
+                    console.error("Audio Play Error:", error);
+                    ttsStatus.textContent = `ශබ්දය වාදනය කිරීමේ දෝෂයකි: ${error.message}`;
+                    buttonIcon.classList.remove('fa-pause');
+                    buttonIcon.classList.add('fa-volume-up');
+                    currentAudio = null; // Reset
+                });
+
+                // IMPORTANT: Move to the next index, ready for the *next* click
+                // The % (modulo) operator makes it loop back to 0 at the end of the list
+                currentVoiceIndex = (currentVoiceIndex + 1) % VOICE_PLAYLIST.length;
             }
         }
+
 
         // --- Promise Generation Function (LLM Text) (Feature 2) ---
         async function generatePromise() {
@@ -615,81 +569,102 @@
             }
         }
 
-        
-        // --- Interactive Kiss Emojis (Original Functionality) ---
-        document.getElementById('reveal-message').addEventListener('click', function() {
-            const secretMessage = document.getElementById('secret-message');
-            // Toggle visibility using Tailwind classes
-            if (secretMessage.classList.contains('hidden')) {
-                secretMessage.classList.remove('hidden');
-                // Optional: Scroll to the message smoothly
-                secretMessage.scrollIntoView({ behavior: 'smooth' });
-            } else {
-                secretMessage.classList.add('hidden');
-            }
-            // --- Call the function to create kiss emojis ---
-            for (let i = 0; i < 15; i++) { // Increased count to 15 for better coverage
-                createKissEmoji();
-            }
-        });
-
+        // --- Kiss Emoji Animation Function (Feature 3) ---
         function createKissEmoji() {
-            const emoji = document.createElement('span');
-            emoji.classList.add('kiss-emoji');
-            emoji.textContent = '😘'; 
-            
-            // 1. Random Start Position (Across the entire viewport)
-            emoji.style.left = Math.random() * 100 + 'vw'; 
-            emoji.style.top = Math.random() * 100 + 'vh';  
-
-            // 2. Random Movement Destination (Relative to its starting position)
-            const randomX = (Math.random() * 600 - 300) + 'px'; 
-            const randomY = (Math.random() * -600 - 600) + 'px'; 
-
-            // Set CSS variables for the keyframes
-            emoji.style.setProperty('--final-x', randomX);
-            emoji.style.setProperty('--final-y', randomY);
-            
-            // Random delay for a staggered effect
-            emoji.style.animationDelay = Math.random() * 1 + 's'; 
-
+            const emoji = document.createElement('div');
+            emoji.innerHTML = '😘'; // Kiss emoji
+            emoji.className = 'kiss-emoji';
             document.body.appendChild(emoji);
 
-            // Remove emoji after animation to clean up DOM
+            // Start position (usually near the button)
+            const startX = window.innerWidth * 0.5;
+            const startY = window.innerHeight * 0.25;
+            
+            // Randomize end position (floating upwards)
+            const finalX = (Math.random() - 0.5) * window.innerWidth * 0.8;
+            const finalY = -(window.innerHeight * 0.5) - (Math.random() * 100); // Float high up
+
+            emoji.style.left = `${startX}px`;
+            emoji.style.top = `${startY}px`;
+            
+            // Set CSS variables for the animation
+            emoji.style.setProperty('--final-x', `${finalX}px`);
+            emoji.style.setProperty('--final-y', `${finalY}px`);
+
+            // Remove the emoji after the animation completes
             emoji.addEventListener('animationend', () => {
                 emoji.remove();
             });
         }
-        
-        // --- Dynamic Scroll Fade Logic (Original Functionality) ---
-        function handleScrollFade() {
+
+
+        // --- Scroll Fade Effect (Feature 4) ---
+        function updateScrollFade() {
             const overlay = document.getElementById('scroll-overlay');
-            if (overlay) {
-                const scrollPosition = window.scrollY;
-                // Fade from 0 (transparent) to 0.7 (semi-solid white) over 500px scroll depth
-                const maxFadeScroll = 500;
-                // Calculate opacity: 0 to 1 based on scroll position relative to maxFadeScroll
-                let opacityFactor = Math.min(1, scrollPosition / maxFadeScroll);
-                // The overlay will go from 0 opacity to a max of 0.7 opacity
-                let fadeOpacity = opacityFactor * 0.7; 
-                
-                overlay.style.opacity = fadeOpacity;
+            if (!overlay) return;
+            
+            // Get the total scrollable height of the document
+            const scrollHeight = document.documentElement.scrollHeight;
+            // Get the height of the viewport
+            const clientHeight = document.documentElement.clientHeight;
+            // Get the current scroll position
+            const scrollTop = window.scrollY || document.documentElement.scrollTop;
+
+            // Calculate the maximum scroll position
+            const maxScroll = scrollHeight - clientHeight;
+            
+            // Avoid division by zero if not scrollable
+            if (maxScroll <= 0) {
+                overlay.style.opacity = 0;
+                return;
             }
+
+            // Calculate opacity: 0 at the top, 1 at the bottom
+            let opacity = (scrollTop / maxScroll) * 0.5; // Max opacity 0.5
+            
+            // Cap opacity between 0 and 0.5
+            opacity = Math.max(0, Math.min(0.5, opacity));
+            
+            overlay.style.opacity = opacity;
         }
 
-        // Attach event listeners to the new buttons and original scroll logic
-        window.addEventListener('scroll', handleScrollFade);
-        window.addEventListener('load', handleScrollFade);
-        window.addEventListener('load', () => {
-            document.getElementById('tts-button').addEventListener('click', generateTTS);
-            document.getElementById('generate-promise').addEventListener('click', generatePromise);
+        // Add scroll event listener
+        window.addEventListener('scroll', updateScrollFade);
+
+        
+        // --- Event Listeners (Initialization) ---
+        document.addEventListener('DOMContentLoaded', () => {
+            // Secret Message Button
+            const revealButton = document.getElementById('reveal-message');
+            const secretMessageSection = document.getElementById('secret-message');
+            if (revealButton && secretMessageSection) {
+                revealButton.addEventListener('click', () => {
+                    secretMessageSection.classList.toggle('hidden');
+                    createKissEmoji(); // Trigger kiss animation
+                    
+                    // Scroll to the message if it's being revealed
+                    if (!secretMessageSection.classList.contains('hidden')) {
+                        secretMessageSection.scrollIntoView({ behavior: 'smooth', block: 'start' });
+                    }
+                });
+            }
+
+            // --- Hook up the TTS Button ---
+            const ttsButton = document.getElementById('tts-button');
+            if (ttsButton) {
+                ttsButton.addEventListener('click', togglePlayNextVoice);
+            }
+
+            // LLM Promise Generator Button
+            const promiseButton = document.getElementById('generate-promise');
+            if (promiseButton) {
+                promiseButton.addEventListener('click', generatePromise);
+            }
+
+            // Initial Call to Set Overlay
+            updateScrollFade();
         });
     </script>
 </body>
 </html>
-
-
-
-
-
 
